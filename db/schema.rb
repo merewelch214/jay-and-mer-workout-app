@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 3) do
+ActiveRecord::Schema.define(version: 4) do
 
   create_table "logs", force: :cascade do |t|
     t.integer "user_id"
@@ -28,7 +28,7 @@ ActiveRecord::Schema.define(version: 3) do
   end
 
   create_table "workouts", force: :cascade do |t|
-    t.string "type"
+    t.string "category"
     t.string "description"
     t.integer "difficulty"
     t.integer "calories_burned"
