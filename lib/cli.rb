@@ -32,8 +32,13 @@ class CLI
         end
       end
 
-      #if person does not exist we can throw an error 
-      #puts "That username doesn't exist, please try again"
+      #if user doesn't input any username,
+      # if user_input == ""
+      # puts "You must enter a username to register."
+      #sends back to login
+      # if we canot find username 
+      # puts "Incorrect username, please try again"
+      
 
 
       def create_account
@@ -41,7 +46,7 @@ class CLI
         @user = User.create(name: user_input)
         password_input = PROMPT.ask "Password"
         @user.password = password_input
-        puts "account created?"
+        puts "Thanks for creating an account!"
         main_menu
         end
 
@@ -94,6 +99,8 @@ class CLI
             multirenderer = TTY::Table::Renderer::ASCII.new(table, multiline: true)
             table.orientation = :horizontal
             puts multirenderer.render
+            # if user does not have any workouts puts 
+            # You do not currently have any workouts 
             puts "You're doing amazing!!!"
             main_menu
         end
@@ -114,6 +121,15 @@ class CLI
 
         selected_workout = @user.workouts.find_by(id: id_input)
         selected_workout.update(difficulty: diff_input, calories_burned: cals_burned_input, duration: time_input) 
+        puts "Your workout has been updated."
         end
+        #if user does not have any workouts to update
+        # puts "You do not currently have any workouts to update" 
 
+
+        def delete_workout
+            #find workout for @user instance
+            #puts out @user workouts
+            #allow user to select number to delete
+        end
 end
