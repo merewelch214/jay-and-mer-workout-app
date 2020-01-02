@@ -2,12 +2,17 @@ require_relative '../config/environment'
 require 'pry'
 require 'tty-prompt'
 require 'tty-table'
+require 'tty-font'
 
 class CLI
 
     PROMPT = TTY::Prompt.new
 
     def start
+        font = TTY::Font.new(:doom)
+        puts font.write("WORKOUT LOG")
+        puts "__________________________________________________________________________\n\n"
+        sleep(1) 
         self.welcome_menu
     end
 
@@ -24,15 +29,15 @@ class CLI
         if @user = User.find_by(name: user_input)
             password_input = PROMPT.ask "Password"
         else 
-            puts "User doesn't exist, please try again"
+            PROMPT.say("User doesn't exist, please try again", color: :red)
             login
         end
 
         if @user.password == password_input
-            puts "Congrats, you're logged in!"
+            PROMPT.say("Congrats, you're logged in!", color: :green)
             main_menu
         else
-            puts "Incorrect password, please try again."
+            PROMPT.say("Incorrect password, please try again.", color: :red)
             login
         end
     end
@@ -40,12 +45,12 @@ class CLI
     def create_account
         user_input = PROMPT.ask "Type in a Username"
         if User.find_by(name: user_input)
-            "That username already exists, try again"
+            PROMPT.say("That username already exists, try again", color: :red)
             welcome_menu
         else
             password_input = PROMPT.ask "Password"
             @user = User.create(name: user_input, password: password_input)
-            puts "Thanks for creating an account!"
+            PROMPT.say("Thanks for creating an account!", color: :green)
             main_menu
         end
     end
@@ -55,7 +60,7 @@ class CLI
             menu.choice "Add Existing Workout", -> { all_workouts } #WORKS!
             menu.choice "Add New Workout", -> { new_workouts } #WORKS!
             menu.choice "See Your Workouts", -> { see_my_workouts }   #WORKS!         
-            menu.choice "Update Workout Log", -> { update_log} #WORKS!
+            menu.choice "Update Workout Log", -> { update_log } #WORKS!
             menu.choice "Exit"
         end
     end
@@ -72,7 +77,7 @@ class CLI
         user_input = PROMPT.ask('Select the workout ID')
 
         new_log = Log.create(user_id: @user.id, workout_id: user_input, date: Time.now)
-        puts "New workout added to your log!"
+        PROMPT.say("New workout added to your log!", color: :green)
         main_menu
     end
 
@@ -86,7 +91,7 @@ class CLI
     
             new_workout = Workout.create(category: category_input, description: desc_input, difficulty: diff_input, calories_burned: cals_burned_input, duration: time_input)
             Log.create(user_id: @user.id, workout_id: new_workout.id, date: Time.now, mood: mood_input)
-            puts "WORK YA BODY!!!"
+            PROMPT.say("WORK YA BODY!!!", color: :yellow)
         main_menu
     end
 
@@ -98,14 +103,14 @@ class CLI
             table << [workout[0], workout[1], workout[2], workout[3], workout[4], workout[5]]
         end
         if table.length <= 1
-            puts "You do not currently have any workouts" 
+            PROMPT.say("You do not currently have any workouts", color: :red)
             main_menu
         else 
             multirenderer = TTY::Table::Renderer::ASCII.new(table, multiline: true)
             table.orientation = :horizontal
             puts multirenderer.render
         
-            puts "You're doing amazing!!!"
+            PROMPT.say("You're doing amazing!!!", color: :blue)
         end
         main_menu
     end
@@ -118,7 +123,7 @@ class CLI
         end
 
         if table.length <= 1
-            puts "You do not currently have any workouts to update"
+            PROMPT.say("You do not currently have any workouts to update", color: :yellow)
             main_menu
         else
 
@@ -133,13 +138,13 @@ class CLI
                 mood_input = PROMPT.ask "How did you feel after the workout?"
                 user_selected_workout = @user.logs.find_by(id: id_input)
                 user_selected_workout.update(mood: mood_input) 
-                puts "Your mood has been updated."
+                PROMPT.say("Your mood has been updated.", color: :green)
                 main_menu
             elsif update_type == "Delete"
                 id_input = PROMPT.ask "Which workout ID would you like to delete?"
                 user_selected_workout = @user.logs.find_by(id: id_input)
                 user_selected_workout.destroy
-                puts "Workout deleted"
+                PROMPT.say("Workout deleted", color: :yellow)
                 main_menu
             end
         end
