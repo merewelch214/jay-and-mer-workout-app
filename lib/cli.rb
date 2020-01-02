@@ -61,6 +61,7 @@ class CLI
             menu.choice "Add New Workout", -> { new_workouts } #WORKS!
             menu.choice "See Your Workouts", -> { see_my_workouts }   #WORKS!         
             menu.choice "Update Workout Log", -> { update_log } #WORKS!
+            menu.choice "Your Stats", -> { view_user_stats }
             menu.choice "Exit"
         end
     end
@@ -78,6 +79,7 @@ class CLI
 
         new_log = Log.create(user_id: @user.id, workout_id: user_input, date: Time.now)
         PROMPT.say("New workout added to your log!", color: :green)
+        fav_workouts
         main_menu
     end
 
@@ -96,12 +98,12 @@ class CLI
     end
 
     def see_my_workouts
-        table = TTY::Table.new header: ["Category", "Desc", "Difficulty", "Cal. Burned", "Duration", "Mood"]
-
-        user_own_workouts = User.joins(:logs, :workouts).where(id: @user.id).pluck("workouts.category, workouts.description, workouts.difficulty, workouts.calories_burned, workouts.duration, logs.mood")
-        user_own_workouts.each do |workout|
-            table << [workout[0], workout[1], workout[2], workout[3], workout[4], workout[5]]
+        table = TTY::Table.new header: ["ID", "Category", "Desc", "Difficulty", "Cal. Burned", "Duration", "Mood"]
+        user_workout_log_table = User.joins(:workouts, :logs).where(id: @user.id).pluck("logs.id, workouts.category, workouts.description, workouts.difficulty, workouts.calories_burned, workouts.duration, logs.mood").uniq
+        user_workout_log_table.each do |workout|
+            table << [workout[0], workout[1], workout[2], workout[3], workout[4], workout[5], workout[6]]
         end
+
         if table.length <= 1
             PROMPT.say("You do not currently have any workouts", color: :red)
             main_menu
@@ -117,9 +119,9 @@ class CLI
 
     def update_log
         table = TTY::Table.new header: ["ID", "Category", "Desc", "Difficulty", "Cal. Burned", "Duration", "Mood"]
-        user_workout_log_table = User.joins(:logs, :workouts).where(id: @user.id).pluck("users.name, logs.id, workouts.category, workouts.description, workouts.difficulty, workouts.calories_burned, workouts.duration, logs.mood")
+        user_workout_log_table = User.joins(:workouts, :logs).where(id: @user.id).pluck("logs.id, workouts.category, workouts.description, workouts.difficulty, workouts.calories_burned, workouts.duration, logs.mood").uniq
         user_workout_log_table.each do |workout|
-            table << [workout[1], workout[2], workout[3], workout[4], workout[5], workout[6], workout[7]]
+            table << [workout[0], workout[1], workout[2], workout[3], workout[4], workout[5], workout[6]]
         end
 
         if table.length <= 1
@@ -139,6 +141,8 @@ class CLI
                 user_selected_workout = @user.logs.find_by(id: id_input)
                 user_selected_workout.update(mood: mood_input) 
                 PROMPT.say("Your mood has been updated.", color: :green)
+                total_minutes_worked_out
+                total_calories
                 main_menu
             elsif update_type == "Delete"
                 id_input = PROMPT.ask "Which workout ID would you like to delete?"
@@ -149,4 +153,52 @@ class CLI
             end
         end
     end
+
+    def total_minutes_worked_out
+        total = 0
+        @user.workouts.each do |workout|
+            total += workout.duration 
+        end
+        total
+    end
+
+    def total_calories
+        total = 0
+        @user.workouts.each do |workout|
+            total += workout.calories_burned
+        end
+        total
+    end
+
+    def fav_workouts
+        total = Workout.joins(:logs).group("workouts.category").count
+        fav_array = total.max_by {|category, num| num }
+        most_popular_category = fav_array[0]
+        count_logged = fav_array[1]
+        puts "#{most_popular_category} is the most popular workout and has been logged #{count_logged} times"
+    end
+
+    def user_fav_workouts
+        total = @user.workouts.group("workouts.category").count
+        fav_array = total.max_by {|category, num| num }
+    end
+
+
+    def avg_cals_burned
+        num_of_logged_workouts = @user.workouts.length 
+        total = total_calories / num_of_logged_workouts
+        
+    end
+
+    def view_user_stats
+        puts "You've burned #{total_calories} calories!"
+        puts "You've logged #{total_minutes_worked_out} minutes of workouts!"
+        puts "Your favorite workout is #{user_fav_workouts[0]}."
+        #avg_difficulty
+        #avg_workout_duration
+        puts "Your average calories burned #{avg_cals_burned}"
+        main_menu
+    end
+
+
 end
