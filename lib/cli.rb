@@ -9,9 +9,10 @@ class CLI
     PROMPT = TTY::Prompt.new
 
     def start
-        font = TTY::Font.new(:doom)
+        font = TTY::Font.new(:standard)
         puts font.write("WORKOUT LOG")
-        puts "__________________________________________________________________________\n\n"
+        puts "-----------------------------------------------------------------------------------------"
+        puts ""
         sleep(1) 
         self.welcome_menu
     end
@@ -43,19 +44,24 @@ class CLI
     end
 
     def create_account
-        user_input = PROMPT.ask "Type in a Username"
+        user_input = PROMPT.ask "Create a Username:"
         if User.find_by(name: user_input)
             PROMPT.say("That username already exists, try again", color: :red)
             welcome_menu
         else
-            password_input = PROMPT.ask "Password"
-            @user = User.create(name: user_input, password: password_input)
+            password_input = PROMPT.ask "Password:"
+            age_input = PROMPT.ask "Your age:"
+            weight_input = PROMPT.ask "Current weight:"
+            cal_goal_input = PROMPT.ask "Calorie burn goal:"
+            @user = User.create(name: user_input, password: password_input, age: age_input, weight: weight_input, calorie_goal: cal_goal_input)
+            puts ""
             PROMPT.say("Thanks for creating an account!", color: :green)
             main_menu
         end
     end
 
     def main_menu
+        puts "----------"
         PROMPT.select ("Please select one of the following options:")  do |menu|
             menu.choice "Add Existing Workout", -> { all_workouts } #WORKS!
             menu.choice "Add New Workout", -> { new_workouts } #WORKS!
@@ -67,6 +73,7 @@ class CLI
     end
 
     def all_workouts
+        puts "----------"
         table = TTY::Table.new header: ["ID", "Category", "Desc", "Difficulty", "Cal. Burned", "Duration"]
         Workout.all.each do |workout|
             table << [workout.id, workout.category, workout.description, workout.difficulty, workout.calories_burned, workout.duration]
@@ -78,13 +85,15 @@ class CLI
         user_input = PROMPT.ask('Select the workout ID')
 
         new_log = Log.create(user_id: @user.id, workout_id: user_input, date: Time.now)
+        puts ""
         PROMPT.say("New workout added to your log!", color: :green)
-        fav_workouts
+        puts ""
         main_menu
     end
 
     def new_workouts
-        category_input = PROMPT.select('What workout category would you like to choose from?', ["Cardio", "Meditation", "Active Regeneration"])
+        puts "----------"
+        category_input = PROMPT.select('What workout category would you like to choose from?\n', ["Cardio", "Meditation", "Active Regeneration"])
         mood_input = PROMPT.ask('How did you feel after the workout?')
         desc_input = PROMPT.ask('Describe the workout')
         diff_input = PROMPT.select('Rate the difficulty of the workout. 1 for easiest and 5 for hardest', [1, 2, 3, 4, 5])
@@ -93,11 +102,14 @@ class CLI
     
             new_workout = Workout.create(category: category_input, description: desc_input, difficulty: diff_input, calories_burned: cals_burned_input, duration: time_input)
             Log.create(user_id: @user.id, workout_id: new_workout.id, date: Time.now, mood: mood_input)
+            puts ""
             PROMPT.say("WORK YA BODY!!!", color: :yellow)
+            puts ""
         main_menu
     end
 
     def see_my_workouts
+        puts "----------"
         table = TTY::Table.new header: ["ID", "Category", "Desc", "Difficulty", "Cal. Burned", "Duration", "Mood"]
         user_workout_log_table = User.joins(:workouts, :logs).where(id: @user.id).pluck("logs.id, workouts.category, workouts.description, workouts.difficulty, workouts.calories_burned, workouts.duration, logs.mood").uniq
         user_workout_log_table.each do |workout|
@@ -118,6 +130,7 @@ class CLI
     end
 
     def update_log
+        puts "----------"
         table = TTY::Table.new header: ["ID", "Category", "Desc", "Difficulty", "Cal. Burned", "Duration", "Mood"]
         user_workout_log_table = User.joins(:workouts, :logs).where(id: @user.id).pluck("logs.id, workouts.category, workouts.description, workouts.difficulty, workouts.calories_burned, workouts.duration, logs.mood").uniq
         user_workout_log_table.each do |workout|
@@ -181,24 +194,30 @@ class CLI
     def user_fav_workouts
         total = @user.workouts.group("workouts.category").count
         fav_array = total.max_by {|category, num| num }
+        fav_workout = fav_array[0]
     end
 
 
     def avg_cals_burned
         num_of_logged_workouts = @user.workouts.length 
-        total = total_calories / num_of_logged_workouts
-        
+        total = total_calories / num_of_logged_workouts  
+    end
+
+    def cal_burn_progress
+        cals_left = @user.calorie_goal - total_calories
     end
 
     def view_user_stats
-        puts "You've burned #{total_calories} calories!"
+        puts "----------"
+        puts "You've burned #{total_calories} calories total!"
+        puts "----------"
         puts "You've logged #{total_minutes_worked_out} minutes of workouts!"
-        puts "Your favorite workout is #{user_fav_workouts[0]}."
-        #avg_difficulty
-        #avg_workout_duration
-        puts "Your average calories burned #{avg_cals_burned}"
+        puts "----------"
+        puts "Your favorite workout is #{user_fav_workouts}."
+        puts "----------"
+        puts "On average, you burn #{avg_cals_burned} calories per workout"
+        puts "----------"
+        puts "You set a goal of burning #{@user.calorie_goal} calories. You have #{cal_burn_progress} calories to go."
         main_menu
     end
-
-
 end
